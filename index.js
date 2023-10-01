@@ -184,6 +184,11 @@ app.post("/register", async (req, res) => {
   }
 });
 
+// Render the login form
+app.get("/login", (req, res) => {
+  res.sendFile(__dirname + "/views/login.html");
+});
+
 // Login
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
@@ -201,6 +206,7 @@ app.post("/login", async (req, res) => {
       if (err) {
         return res.status(500).json({ message: "Login error" });
       }
+      console.log(user);
       return res.redirect("/dashboard"); // Redirect to the dashboard after login
     });
   } catch (err) {
@@ -219,18 +225,19 @@ app.get("/dashboard", (req, res) => {
   }
 });
 
-app.get("/calendar/events", async (req, res) => {
+app.get("/calendar/events/:email", async (req, res) => {
   try {
     // Check if the user is authenticated
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
+    // if (!req.isAuthenticated()) {
+    //   return res.status(401).json({ message: "Not authenticated" });
+    // }
 
-    const googleId = req.user.googleId;
+    // const googleId = req.user.googleId;
+    const email = req.params.email;
 
-    if (!googleId) {
-      return res.status(400).json({ message: "Google ID not linked" });
-    }
+    // if (!googleId) {
+    //   return res.status(400).json({ message: "Google ID not linked" });
+    // }
 
     // Now that you have the user's Google ID, you can use it to fetch calendar events
     // Set up the Google Calendar API client and fetch events using the googleId
@@ -244,7 +251,7 @@ app.get("/calendar/events", async (req, res) => {
 
     // Set the credentials in the OAuth2 client
     // Assuming you have stored the access token and refresh token in the user's record
-    const user = await User.findOne({ googleId: googleId });
+    const user = await User.findOne({ email: email });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
