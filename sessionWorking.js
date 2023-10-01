@@ -4,41 +4,17 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const dotenv = require("dotenv");
 const expressSession = require("express-session");
 const { google } = require("googleapis");
-const User = require("./User");
-const mongoose = require("mongoose");
-const MongoDBStore = require("connect-mongodb-session")(expressSession);
 
 dotenv.config();
 
 const app = express();
 
-// Move MongoDB connection inside an async function
-async function connectToMongoDB() {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log("Connected to MongoDB");
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-  }
-}
-
-connectToMongoDB(); // Call the function to connect to MongoDB
-
-// Configure express-session middleware with MongoDB as the session store
-const sessionStore = new MongoDBStore({
-  uri: process.env.MONGODB_URI,
-  collection: "sessions",
-});
-
+// Configure express-session middleware
 app.use(
   expressSession({
     secret: process.env.SESSION_SECRET_KEY,
     resave: true,
     saveUninitialized: true,
-    store: sessionStore,
   })
 );
 
@@ -49,57 +25,30 @@ passport.use(
       clientID: process.env.GOOGLE_API_CLIENT_ID,
       clientSecret: process.env.GOOGLE_API_CLIENT_SECRET,
       callbackURL: process.env.GOOGLE_API_CALLBACK_URL,
-      scope: ["profile", "email", "https://www.googleapis.com/auth/calendar"],
+      scope: ["profile", "email", "https://www.googleapis.com/auth/calendar"], // Add the Calendar scope
     },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        // Check if the user already exists in your database
-        let user = await User.findOne({ googleId: profile.id });
-
-        if (!user) {
-          // Create a new user if they don't exist
-          user = new User({
-            googleId: profile.id,
-            name: profile.displayName,
-            email: profile.emails[0].value,
-          });
-        }
-
-        // Update or set the access token and refresh token
-        user.accessToken = accessToken;
-        user.refreshToken = refreshToken;
-
-        await user.save();
-
-        // Create a user object to pass to done
-        const userObject = {
-          id: user._id, // Use the unique identifier for the user (e.g., MongoDB _id)
-          accessToken,
-          refreshToken,
-        };
-
-        done(null, userObject);
-      } catch (err) {
-        done(err);
-      }
+    (accessToken, refreshToken, profile, done) => {
+      const user = { accessToken, refreshToken, profile };
+      console.log(user);
+      done(null, user);
     }
   )
 );
 
 // Serialize user into the session
 passport.serializeUser((user, done) => {
-  done(null, user.id);
+  // Serialize the user object with the access and refresh tokens
+  done(null, {
+    id: user.id,
+    accessToken: user.accessToken,
+    refreshToken: user.refreshToken,
+  });
 });
 
 // Deserialize user from the session
-passport.deserializeUser(async (id, done) => {
-  try {
-    // Find the user in the database by their unique identifier (e.g., MongoDB _id)
-    const user = await User.findById(id);
-    done(null, user);
-  } catch (err) {
-    done(err);
-  }
+passport.deserializeUser((user, done) => {
+  // Deserialize the user object and pass it to the callback
+  done(null, user);
 });
 
 // Initialize Passport and session management

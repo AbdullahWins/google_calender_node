@@ -1,4 +1,5 @@
-const mongoose = require("mongoose"); // Import Mongoose
+const mongoose = require("mongoose");
+
 const userSchema = new mongoose.Schema({
   googleId: {
     type: String,
@@ -13,6 +14,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
+  },
+  accessToken: {
+    type: String, // Store the access token as a string
+  },
+  refreshToken: {
+    type: String, // Store the refresh token as a string
   },
   // Add more fields as needed
   // ...
