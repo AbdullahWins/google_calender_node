@@ -25,43 +25,12 @@ passport.use(
       clientID: process.env.GOOGLE_API_CLIENT_ID,
       clientSecret: process.env.GOOGLE_API_CLIENT_SECRET,
       callbackURL: process.env.GOOGLE_API_CALLBACK_URL,
+      scope: ["profile", "email", "https://www.googleapis.com/auth/calendar"], // Add the Calendar scope
     },
     (accessToken, refreshToken, profile, done) => {
-      // Create a Google Calendar API client using user credentials
-      const oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_API_CLIENT_ID,
-        process.env.GOOGLE_API_CLIENT_SECRET,
-        process.env.GOOGLE_API_CALLBACK_URL
-      );
-
-      // Set the credentials in the OAuth2 client
-      oauth2Client.setCredentials({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-
-      // Create a Google Calendar API instance
-      const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-
-      // Retrieve the user's calendar events
-      calendar.events.list(
-        {
-          calendarId: "primary", // Use 'primary' to access the user's primary calendar
-          timeMin: new Date().toISOString(),
-          maxResults: 10, // You can adjust the number of events to retrieve
-          singleEvents: true,
-          orderBy: "startTime",
-        },
-        (err, response) => {
-          if (err) {
-            console.error("Error fetching calendar events:", err);
-            return done(err);
-          }
-          const events = response.data.items;
-          console.log("Calendar Events:", events);
-          return done(null, profile);
-        }
-      );
+      const user = { accessToken, refreshToken, profile };
+      console.log(user);
+      done(null, user);
     }
   )
 );
